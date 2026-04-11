@@ -1,40 +1,31 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Virtual Environment
-venv/
-env/
-.venv/
-
-# Environment variables (IMPORTANT)
+# Environment
 .env
 
 # Database
-*.db
-*.sqlite3
+database/*.db
+database/*.db.old
 
-# Logs
-*.log
+# ML models
+models/*.pkl
+
+# Dataset (optional)
+models/*.csv
+
+# Uploads
+static/uploads/
+
+# Virtual env
+venv/
+env/
+.venv/
 
 # VS Code
 .vscode/
 
 # OS files
-.DS_Store
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.bak
-
-# Model files (optional - if large)
-*.pkl
-
-# Streamlit (if used)
-.streamlit/
-
-# Uploads (if any)
-uploads/
+.DS_Store
