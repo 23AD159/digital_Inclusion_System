@@ -1,13 +1,15 @@
 import os
 from dotenv import load_dotenv
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '.env'))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'super_secret_key'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'database', 'app.db')
+    SECRET_KEY = os.environ.get("SECRET_KEY", "default-secret")
+    
+    DB_PATH = os.path.join(BASE_DIR, "database", "app.db")
+    SQLALCHEMY_DATABASE_URI = "sqlite:///" + DB_PATH
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload configuration
@@ -16,7 +18,7 @@ class Config:
     CERTIFICATE_FOLDER = os.path.join(UPLOAD_FOLDER, 'certificates')
     
     # ML Model configuration
-    MODEL_PATH = os.path.join(basedir, 'models', 'model.pkl')
+    MODEL_PATH = os.path.join(BASE_DIR, 'models', 'model.pkl')
     
     # AI Mentor configuration
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')

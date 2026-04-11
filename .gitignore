@@ -6,10 +6,12 @@ __pycache__/
 .env
 
 # Database
+*.db
 database/*.db
 database/*.db.old
 
 # ML models
+*.pkl
 models/*.pkl
 
 # Dataset (optional)
