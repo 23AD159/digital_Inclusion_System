@@ -1,0 +1,497 @@
+import os
+import sqlite3
+import joblib
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
+import random
+import json
+
+app = Flask(__name__)
+app.secret_key = 'super_secret_key'
+DATABASE = 'database/app.db'
+
+model_path = 'models/model.pkl'
+if os.path.exists(model_path):
+    student_model = joblib.load(model_path)
+else:
+    student_model = None
+
+# Configuration for File Uploads
+UPLOAD_FOLDER = 'static/uploads'
+RESUME_FOLDER = os.path.join(UPLOAD_FOLDER, 'resumes')
+CERTIFICATE_FOLDER = os.path.join(UPLOAD_FOLDER, 'certificates')
+os.makedirs(RESUME_FOLDER, exist_ok=True)
+os.makedirs(CERTIFICATE_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT, college TEXT, department TEXT, year TEXT, email TEXT UNIQUE, password TEXT, role TEXT DEFAULT 'student',
+            points INTEGER DEFAULT 0,
+            badges TEXT DEFAULT ''
+        )''')
+        
+        # Check and add points and badges columns if they do not exist
+        cursor.execute("PRAGMA table_info(students)")
+        columns = [column['name'] for column in cursor.fetchall()]
+        if 'points' not in columns:
+            cursor.execute("ALTER TABLE students ADD COLUMN points INTEGER DEFAULT 0")
+        if 'badges' not in columns:
+            cursor.execute("ALTER TABLE students ADD COLUMN badges TEXT DEFAULT ''")
+        if 'login_count' not in columns:
+            cursor.execute("ALTER TABLE students ADD COLUMN login_count INTEGER DEFAULT 0")
+        if 'last_login' not in columns:
+            cursor.execute("ALTER TABLE students ADD COLUMN last_login TIMESTAMP DEFAULT ''")
+        
+        q_columns = ', '.join([f'q{i} INTEGER' for i in range(1, 26)])
+        cursor.execute(f'''CREATE TABLE IF NOT EXISTS survey_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, {q_columns}, FOREIGN KEY(student_id) REFERENCES students(id)
+        )''')
+
+        # Add professional profile columns to survey_responses
+        cursor.execute("PRAGMA table_info(survey_responses)")
+        sr_columns = [column['name'] for column in cursor.fetchall()]
+        prof_columns = ['resume_path', 'github_url', 'linkedin_url', 'hackerrank_url', 'leetcode_url', 'certifications_json']
+        for col in prof_columns:
+            if col not in sr_columns:
+                cursor.execute(f"ALTER TABLE survey_responses ADD COLUMN {col} TEXT")
+
+        cursor.execute('''CREATE TABLE IF NOT EXISTS results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, score INTEGER, category TEXT, FOREIGN KEY(student_id) REFERENCES students(id)
+        )''')
+        
+        cursor.execute("PRAGMA table_info(results)")
+        res_columns = [column['name'] for column in cursor.fetchall()]
+        if 'validation_status' not in res_columns:
+            cursor.execute("ALTER TABLE results ADD COLUMN validation_status TEXT DEFAULT 'Pending'")
+        if 'placement_chance' not in res_columns:
+            cursor.execute("ALTER TABLE results ADD COLUMN placement_chance INTEGER DEFAULT 0")
+
+        cursor.execute('''CREATE TABLE IF NOT EXISTS recommendations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, student_id INTEGER, recommendation_text TEXT, FOREIGN KEY(student_id) REFERENCES students(id)
+        )''')
+        
+        cursor.execute("SELECT * FROM students WHERE email='admin@admin.com'")
+        if not cursor.fetchone():
+            hashed_pwd = generate_password_hash('admin123')
+            cursor.execute("INSERT INTO students (name, college, department, year, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                           ('Admin', 'Admin Portal', 'Management', 'N/A', 'admin@admin.com', hashed_pwd, 'admin'))
+        conn.commit()
+
+init_db()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        college = request.form['college_name']
+        dept = request.form['department']
+        year = request.form['year_of_study']
+        email = request.form['email']
+        pwd = generate_password_hash(request.form['password'])
+        
+        try:
+            with get_db() as conn:
+                conn.execute("INSERT INTO students (name, college, department, year, email, password, points, badges) VALUES (?, ?, ?, ?, ?, ?, 0, 'Newcomer')", 
+                             (name, college, dept, year, email, pwd))
+            flash("Registration Successful! Please login.")
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            flash("Email already registered!")
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = get_db().execute("SELECT * FROM students WHERE email = ?", (email,)).fetchone()
+        
+        if user and check_password_hash(user['password'], password):
+            with get_db() as conn:
+                conn.execute("UPDATE students SET login_count = login_count + 1, last_login = CURRENT_TIMESTAMP WHERE id = ?", (user['id'],))
+                conn.commit()
+            
+            session['user_id'] = user['id']
+            session['role'] = user['role']
+            session['name'] = user['name']
+            if user['role'] == 'admin':
+                return redirect(url_for('dashboard'))
+            else:
+                return redirect(url_for('survey'))
+        flash("Invalid credentials!")
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/survey', methods=['GET', 'POST'])
+def survey():
+    if 'user_id' not in session or session['role'] != 'student': 
+        return redirect(url_for('login'))
+        
+    conn = get_db()
+    
+    # Check if student already submitted survey
+    if conn.execute("SELECT * FROM results WHERE student_id = ?", (session['user_id'],)).fetchone():
+        return redirect(url_for('result'))
+        
+    if request.method == 'POST':
+        # Retrieve Q1 to Q25
+        qs = [int(request.form[f'q{i}']) for i in range(1, 26)]
+        
+        # Professional Profile Links
+        github_url = request.form.get('github_url', '')
+        linkedin_url = request.form.get('linkedin_url', '')
+        hackerrank_url = request.form.get('hackerrank_url', '')
+        leetcode_url = request.form.get('leetcode_url', '')
+        
+        # Resume Upload
+        resume_path = ''
+        if 'resume' in request.files:
+            file = request.files['resume']
+            if file and file.filename:
+                filename = secure_filename(f"user_{session['user_id']}_resume_{file.filename}")
+                filepath = os.path.join(RESUME_FOLDER, filename)
+                file.save(filepath)
+                resume_path = filepath
+        
+        # Certifications Upload
+        certs_list = []
+        cert_names = request.form.getlist('cert_names[]')
+        cert_files = request.files.getlist('certs[]')
+        
+        for i, name in enumerate(cert_names):
+            if i < len(cert_files):
+                file = cert_files[i]
+                if file and file.filename:
+                    filename = secure_filename(f"user_{session['user_id']}_cert_{i}_{file.filename}")
+                    filepath = os.path.join(CERTIFICATE_FOLDER, filename)
+                    file.save(filepath)
+                    certs_list.append({'name': name, 'path': filepath})
+        
+        certifications_json = json.dumps(certs_list)
+
+        # Save exact responses to survey_responses
+        placeholders = ', '.join(['?'] * 25)
+        cols = [f'q{i}' for i in range(1, 26)] + ['resume_path', 'github_url', 'linkedin_url', 'hackerrank_url', 'leetcode_url', 'certifications_json']
+        placeholders += ', ?, ?, ?, ?, ?, ?'
+        
+        conn.execute(f"INSERT INTO survey_responses (student_id, {', '.join(cols)}) VALUES (?, {placeholders})", 
+                     [session['user_id']] + qs + [resume_path, github_url, linkedin_url, hackerrank_url, leetcode_url, certifications_json])
+        
+        # Profile Validation Logic (Idea 1)
+        validation_errors = []
+        if qs[7] >= 3 and not github_url:
+            validation_errors.append("GitHub link missing despite claimed usage")
+        if qs[11] >= 2 and not linkedin_url:
+            validation_errors.append("LinkedIn profile missing despite claimed networking")
+        if qs[10] >= 2 and not resume_path:
+            validation_errors.append("Resume missing despite claimed draft completeness")
+            
+        # Behavior Profile Checking Logic (Idea 2)
+        student_data = conn.execute("SELECT login_count FROM students WHERE id = ?", (session['user_id'],)).fetchone()
+        login_count = student_data['login_count'] if student_data else 0
+        if qs[5] == 6 and login_count <= 1:
+            validation_errors.append("Behavior mismatch: Claims daily activity but portal logs are nearly zero")
+            
+        validation_status = "✅ Profile Verified" if not validation_errors else "❌ Discrepancies Found: " + " | ".join(validation_errors)
+
+        # Base Score Penalty System
+        penalty = len(validation_errors) * 5
+        score = max(0, sum(qs) - penalty)
+        
+        # Placement Prediction Model (Idea 5)
+        placement_chance = int(max(5, min(99, score * 0.85 + (8 if not validation_errors else -15))))
+        
+        # Predict strict Risk Category via ML
+        if student_model:
+            features = pd.DataFrame([qs], columns=[f'q{i}' for i in range(1, 26)])
+            cat = student_model.predict(features)[0]
+        else:
+            cat = 'Industry Ready' if score >= 80 else 'Needs Upskilling' if score >= 50 else 'High Risk'
+
+        # Gamification
+        points = score * 5 + 100 # base 100 for finishing
+        badge = "Digital Master 🎖️" if score >= 80 else "Digital Explorer 🧭" if score >= 50 else "Digital Seed 🌱"
+        
+        conn.execute("UPDATE students SET points = ?, badges = ? WHERE id = ?", (points, badge, session['user_id']))
+
+        # Log to results
+        conn.execute("INSERT INTO results (student_id, score, category, validation_status, placement_chance) VALUES (?, ?, ?, ?, ?)", 
+                     (session['user_id'], score, cat, validation_status, placement_chance))
+        
+        # Recommendation Engine based on distinct category sub-loops and exact weaknesses
+        recs = []
+        cat2_score = sum(qs[5:10])   # Coding exposure
+        cat3_score = sum(qs[10:15])  # Professional/LinkedIn
+        cat5_score = sum(qs[20:25])  # Career/Communication/Placements
+        
+        if cat2_score < 15: 
+            recs.extend(["Practice coding daily on LeetCode/HackerRank.", "Build micro-projects in Python or Javascript."])
+        if cat3_score < 10: 
+            recs.extend(["Optimize your LinkedIn profile and connections.", "Create an active GitHub portfolio."])
+        if cat5_score < 8:  
+            recs.extend(["Attend placement training & mock interviews.", "Enhance professional email communication skills."])
+        if qs[16] < 2:  # AI tool specific
+            recs.extend(["Learn to safely leverage AI tools like ChatGPT for productivity."])
+            
+        # Real-Time Trigger (Idea 6)
+        if score < 50:
+            recs.append("🚨 CRITICAL ACTION REQUIRED: Join our interactive Bootcamp. Recommend subscribing to Abdul Bari's Algorithms course, Jenni's Lectures, and utilizing FreeCodeCamp.org to rapidly upskill!")
+            
+        if not recs: 
+            recs.append("You are currently tracking extremely well! Keep up the good work and mentor others.")
+            
+        for r in recs: 
+            conn.execute("INSERT INTO recommendations (student_id, recommendation_text) VALUES (?, ?)", (session['user_id'], r))
+            
+        conn.commit()
+        return redirect(url_for('result'))
+        
+    return render_template('survey.html')
+
+@app.route('/result')
+def result():
+    if 'user_id' not in session or session['role'] != 'student': return redirect(url_for('login'))
+    conn = get_db()
+    res = conn.execute("SELECT * FROM results WHERE student_id = ?", (session['user_id'],)).fetchone()
+    if not res: return redirect(url_for('survey'))
+    
+    recs = [r['recommendation_text'] for r in conn.execute("SELECT recommendation_text FROM recommendations WHERE student_id = ?", (session['user_id'],)).fetchall()]
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (session['user_id'],)).fetchone()
+    
+    # Check top users for leaderboard
+    leaderboard = conn.execute("SELECT name, points, badges FROM students WHERE role='student' AND points > 0 ORDER BY points DESC LIMIT 5").fetchall()
+    
+    # Peer Comparison System (Idea 4)
+    total_students_res = conn.execute("SELECT count(*) as c FROM results").fetchone()['c'] or 1
+    lower_students = conn.execute("SELECT count(*) as c FROM results WHERE score < ?", (res['score'],)).fetchone()['c'] or 0
+    percentile = int((lower_students / total_students_res) * 100)
+    
+    return render_template('result.html', score=res['score'], category=res['category'], recommendations=recs, student=student, leaderboard=leaderboard, result_data=res, percentile=percentile)
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session or session['role'] != 'admin': return redirect(url_for('login'))
+    conn = get_db()
+    
+    total = conn.execute("SELECT count(*) as c FROM students WHERE role='student'").fetchone()['c']
+    avg_score = round(conn.execute("SELECT avg(score) as a FROM results").fetchone()['a'] or 0, 2)
+    dist = {r['category']: r['count'] for r in conn.execute("SELECT category, count(*) as count FROM results GROUP BY category").fetchall()}
+    
+    # Fill missing distribution keys
+    for k in ['Industry Ready', 'Needs Upskilling', 'High Risk']:
+        if k not in dist:
+            dist[k] = 0
+            
+    # Line chart logic across cohorts
+    scores_raw = conn.execute("SELECT id, score FROM results ORDER BY id").fetchall()
+    score_labels = [f"St-{s['id']}" for s in scores_raw]
+    score_data = [s['score'] for s in scores_raw]
+    
+    # Analyze overarching skill gaps across the 5 categories dynamically
+    gaps = conn.execute("SELECT avg(q1+q2+q3+q4+q5) as c1, avg(q6+q7+q8+q9+q10) as c2, avg(q11+q12+q13+q14+q15) as c3, avg(q16+q17+q18+q19+q20) as c4, avg(q21+q22+q23+q24+q25) as c5 FROM survey_responses").fetchone()
+    skill_gaps = [
+        round(gaps['c1'] or 0, 1) if gaps else 0, 
+        round(gaps['c2'] or 0, 1) if gaps else 0, 
+        round(gaps['c3'] or 0, 1) if gaps else 0, 
+        round(gaps['c4'] or 0, 1) if gaps else 0, 
+        round(gaps['c5'] or 0, 1) if gaps else 0
+    ]
+
+    # Skill Gap Heatmap Metrics (Idea 3)
+    total_surveys = conn.execute("SELECT count(*) as c FROM survey_responses").fetchone()['c'] or 1
+    no_github = conn.execute("SELECT count(*) as c FROM survey_responses WHERE q8 = 0 OR github_url = '' OR github_url IS NULL").fetchone()['c'] or 0
+    percent_no_github = int((no_github / total_surveys) * 100)
+    
+    no_comm = conn.execute("SELECT count(*) as c FROM survey_responses WHERE q21 = 0 OR q21 = 1").fetchone()['c'] or 0
+    percent_no_comm = int((no_comm / total_surveys) * 100)
+
+    return render_template('dashboard.html', total=total, avg_score=avg_score, dist=dist, score_labels=score_labels, score_data=score_data, skill_gaps=skill_gaps, percent_no_github=percent_no_github, percent_no_comm=percent_no_comm)
+
+@app.route('/api/simulate', methods=['POST'])
+def simulate():
+    """Policy Simulator API: Adjusts the scores based on scenario multipliers"""
+    if 'user_id' not in session or session['role'] != 'admin': return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    internet_boost = float(data.get('bandwidth', 0)) / 100.0  # e.g., 20% increase
+    training_boost = float(data.get('training', 0)) / 100.0
+    
+    conn = get_db()
+    
+    # Recalculate average artificially
+    avg_score_current = conn.execute("SELECT avg(score) as a FROM results").fetchone()['a'] or 0
+    
+    # The impact logic: Bandwidth impacts digital access (categories 1 & 4), training impacts skills (categories 2, 3, 5).
+    # For simulation, we assume an X% increase raises the score proportionally up to a cap of 100.
+    simulated_avg = min(100, avg_score_current + (avg_score_current * internet_boost * 0.4) + (avg_score_current * training_boost * 0.6))
+    
+    # Simulated distribution changes (Shift users upwards)
+    total_users = conn.execute("SELECT count(*) as c FROM results").fetchone()['c'] or 1
+    
+    # Let's say high-risk users jump to Needs Upskilling, and Upskilling to Ready
+    current_dist = {r['category']: r['count'] for r in conn.execute("SELECT category, count(*) as count FROM results GROUP BY category").fetchall()}
+    high_risk = current_dist.get('High Risk', 0)
+    upskilling = current_dist.get('Needs Upskilling', 0)
+    ready = current_dist.get('Industry Ready', 0)
+    
+    shift_factor = min(1.0, (internet_boost + training_boost))
+    
+    high_risk_migrating = int(high_risk * shift_factor)
+    upskilling_migrating = int(upskilling * shift_factor)
+    
+    sim_high_risk = high_risk - high_risk_migrating
+    sim_upskilling = upskilling + high_risk_migrating - upskilling_migrating
+    sim_ready = ready + upskilling_migrating
+    
+    return jsonify({
+        'current_avg': round(avg_score_current, 2),
+        'simulated_avg': round(simulated_avg, 2),
+        'distribution': {
+            'High Risk': sim_high_risk,
+            'Needs Upskilling': sim_upskilling,
+            'Industry Ready': sim_ready
+        }
+    })
+
+@app.route('/chatbot', methods=['POST'])
+def chatbot():
+    """PDM (Personal Digital Mentor) Backend"""
+    if 'user_id' not in session: return jsonify({'reply': 'Please login.'})
+    
+    data = request.json
+    msg = data.get('message', '').lower()
+    
+    # Simple rule-based AI reply simulating PDM mentorship
+    if "hello" in msg or "hi" in msg:
+        reply = "Hello! I am your Personal Digital Mentor (PDM) 🤖. I can help recommend micro-learning modules to improve your digital score. What do you need help with?"
+    elif "learning" in msg or "course" in msg or "upskill" in msg:
+        reply = "I suggest starting with our micro-learning modules! For modern AI tools, check out 'ChatGPT for Devs'. For fundamentals, try 'Intro to Responsive Web Design'. Should I provide a link?"
+    elif "score" in msg or "points" in msg or "badge" in msg:
+        conn = get_db()
+        student = conn.execute("SELECT points, badges FROM students WHERE id = ?", (session['user_id'],)).fetchone()
+        if student:
+            reply = f"You currently have {student['points']} points and the '{student['badges']}' badge! 🌟 Focus on daily coding to reach the next tier."
+        else:
+            reply = "I couldn't fetch your score. Have you taken the survey?"
+    elif "tamil" in msg or "tanglish" in msg:
+        reply = "Vanakkam! Naan ungaloda AI Mentor 🤖. Enna help venum? You can ask me about coding, skills, or placements in Tanglish!"
+    elif "help" in msg:
+         reply = "I am tracking your weaknesses. Want a daily puzzle to improve logical thinking, or a YouTube video on Interview Prep?"
+    else:
+        # Generic motivational fallback
+        fallbacks = [
+            "That's interesting! Keep pushing your boundaries.",
+            "Remember, consistency is key to mastering digital skills 🎓.",
+            "Can you specify a bit? I can guide you on Coding, LinkedIn, or Communication.",
+            "Every step you take improves your workforce readiness. Keep it up! 🚀"
+        ]
+        reply = random.choice(fallbacks)
+        
+    return jsonify({'reply': reply})
+
+@app.route('/download_report')
+def download_report():
+    if 'user_id' not in session or session['role'] != 'student': return redirect(url_for('login'))
+    conn = get_db()
+    
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (session['user_id'],)).fetchone()
+    score_data = conn.execute("SELECT * FROM results WHERE student_id = ?", (session['user_id'],)).fetchone()
+    recs = [row['recommendation_text'] for row in conn.execute("SELECT recommendation_text FROM recommendations WHERE student_id = ?", (session['user_id'],)).fetchall()]
+    
+    if not score_data: return redirect(url_for('survey'))
+    
+    buffer = io.BytesIO()
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    story.append(Paragraph("Digital Inclusion & Workforce Readiness Report", styles['Title']))
+    story.append(Spacer(1, 12))
+    
+    # Student details
+    story.append(Paragraph(f"Student Detail: {student['name']}", styles['Normal']))
+    story.append(Paragraph(f"University ID & Location: {student['college']}", styles['Normal']))
+    story.append(Paragraph(f"Dept: {student['department']} | Batch: {student['year']}", styles['Normal']))
+    story.append(Spacer(1, 12))
+    
+    # Scores and category
+    story.append(Paragraph(f"Digital Readiness Meta-Score: {score_data['score']} / 100", styles['Heading2']))
+    story.append(Paragraph(f"Predicted Output Engine Category: {score_data['category']}", styles['Normal']))
+    story.append(Paragraph(f"Gamification Tier: {student['badges']} | Points: {student['points']}", styles['Normal']))
+    story.append(Spacer(1, 12))
+    
+    # Recommendations
+    story.append(Paragraph("Dynamic Skill Gap Recommendations:", styles['Heading2']))
+    for rec in recs:
+        story.append(Paragraph(f"- {rec}", styles['Normal']))
+        story.append(Spacer(1, 6))
+    
+    doc.build(story)
+    buffer.seek(0)
+    
+    return send_file(buffer, as_attachment=True, download_name='academic_readiness_report.pdf', mimetype='application/pdf')
+
+@app.template_filter('from_json')
+def from_json_filter(value):
+    return json.loads(value) if value else []
+
+@app.route('/history')
+def history():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    conn = get_db()
+    # Fetch survey responses joined with results for scores
+    query = """
+        SELECT sr.*, r.score, r.category 
+        FROM survey_responses sr
+        LEFT JOIN results r ON sr.student_id = r.student_id
+        WHERE sr.student_id = ?
+        ORDER BY sr.id DESC
+    """
+    submissions = conn.execute(query, (session['user_id'],)).fetchall()
+    return render_template('history.html', submissions=submissions)
+
+@app.route('/view_file/<path:filepath>')
+def view_file_route(filepath):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Ensure the path is within the uploads directory for security
+    if not filepath.startswith('static/uploads'):
+        return "Access Denied", 403
+        
+    return send_file(filepath)
+
+if __name__ == '__main__':
+    from waitress import serve
+    print(" * Serving Flask app 'app' using Waitress (Production WSGI server)")
+    print(" * Running on http://127.0.0.1:5000 (Press CTRL+C to quit)")
+    serve(app, host='127.0.0.1', port=5000)

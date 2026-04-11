@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] bg-slate-50 py-12 px-4">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Hero Header Card -->
+        <div class="premium-card rounded-[3rem] p-8 sm:p-12 overflow-hidden relative">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            
+            <div class="flex flex-col lg:flex-row items-center gap-12 relative z-10">
+                <!-- Score Wheel -->
+                <div class="shrink-0 relative">
+                    <div class="w-48 h-48 rounded-full border-[12px] border-slate-100 flex items-center justify-center flex-col">
+                        <span class="text-6xl font-black text-slate-900 leading-none">{{ score }}</span>
+                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-2">Readiness Index</span>
+                    </div>
+                    {% if score >= 80 %}
+                    <div class="absolute -top-2 -right-2 w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg animate-bounce-slow">
+                        <i class="fa-solid fa-award text-xl"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-grow text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 mb-6">
+                        <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Verified Intelligence Result</span>
+                    </div>
+                    <h2 class="text-4xl font-[800] text-slate-900 tracking-tight mb-2">{{ student['name'] }}</h2>
+                    <p class="text-slate-500 font-medium text-lg">{{ student['college'] }} • {{ student['department'] }}</p>
+                    
+                    <div class="mt-8 flex flex-wrap justify-center lg:justify-start gap-4">
+                        <div class="px-6 py-3 rounded-2xl {% if category == 'Industry Ready' %} bg-emerald-500 text-white {% elif category == 'Needs Upskilling' %} bg-amber-500 text-white {% else %} bg-rose-500 text-white {% endif %} font-bold shadow-lg">
+                            AI Status: {{ category }}
+                        </div>
+                        <a href="{{ url_for('student.download_report') }}" class="px-6 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-indigo-600 transition-all shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf"></i> Export Report
+                        </a>
+                        <a href="{{ url_for('student.retake_survey') }}" class="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all">
+                            Retake Assessment
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Verification & Trust -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Trust Card -->
+                <div class="premium-card rounded-[2.5rem] p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-slate-900">Logic Verification</h3>
+                        <i class="fa-solid fa-shield-check text-indigo-500 text-xl"></i>
+                    </div>
+                    
+                    {% if '✅' in result_data['validation_status'] %}
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-4 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-emerald-800 uppercase leading-none">Status</p>
+                            <p class="text-sm font-bold text-emerald-600 mt-1">Profile Verified</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-center gap-4 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-amber-800 uppercase leading-none">Status</p>
+                            <p class="text-sm font-bold text-amber-600 mt-1">Trust Delta Detected</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
+                                <span>AI Confidence</span>
+                                <span>{% if '✅' in result_data['validation_status'] %}98%{% else %}65%{% endif %}</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-600 rounded-full" style="width: {% if '✅' in result_data['validation_status'] %}98%{% else %}65%{% endif %}"></div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium italic leading-relaxed">
+                            {{ result_data['validation_status'].replace('✅ Verified Profile Pattern matching across data points.|', '').replace('❌ Verification Delta:', '') }}
+                        </p>
+                    </div>
+
+                    {% if score >= 80 and '✅' in result_data['validation_status'] %}
+                    <div class="mt-8 p-6 rounded-3xl bg-indigo-600 text-white shadow-xl shadow-indigo-100">
+                        <h4 class="font-bold mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-certificate"></i> Certification
+                        </h4>
+                        <p class="text-xs opacity-80 mb-4">You have cleared the workforce threshold.</p>
+                        <a href="{{ url_for('student.claim_certificate') }}" class="block w-full py-3 bg-white text-indigo-600 text-center rounded-xl font-bold hover:bg-slate-50 transition-all">Claim Verifiable PDF</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Peer Stats -->
+                <div class="premium-card rounded-[2.5rem] p-8 bg-slate-900 text-white">
+                    <h3 class="text-lg font-bold mb-6">Global Comparison</h3>
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-indigo-400">
+                                <i class="fa-solid fa-users text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ percentile }}%</p>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Global Percentile</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-briefcase text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-black leading-none">{{ result_data['placement_chance'] }}%</p>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Placement Probability</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Roadmap & Mentor -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Roadmap Timeline -->
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-10">
+                    <div class="flex items-center justify-between mb-10">
+                        <h3 class="text-2xl font-[800] text-slate-900">Career Roadmap</h3>
+                        <span class="px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase">30-Day Protocol</span>
+                    </div>
+
+                    <div class="relative space-y-12 pl-12 border-l-2 border-slate-100 ml-4">
+                        {% for phase in roadmap.phases %}
+                        <div class="relative">
+                            <!-- Bullet -->
+                            <div class="absolute -left-[61px] top-0 w-12 h-12 rounded-2xl bg-white border-4 border-slate-50 shadow-sm flex items-center justify-center text-indigo-600 font-black text-xl z-20">
+                                {{ loop.index }}
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900 mb-2 uppercase tracking-wide">Phase {{ loop.index }}: {{ phase.title }}</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {% for task in phase.tasks %}
+                                    <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 group">
+                                        <i class="fa-solid fa-circle-check text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="text-sm font-medium text-slate-600">{{ task }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                <!-- Personalized Learning Vault -->
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-10">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-[800] text-slate-900">Learning Vault</h3>
+                        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest">Tailored Resources</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {% for res in resources %}
+                        <a href="{{ res.url }}" target="_blank" class="flex items-center gap-4 p-5 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all group">
+                            <div class="w-14 h-14 rounded-2xl {% if res.platform == 'YouTube' %} bg-rose-50 text-rose-600 {% else %} bg-emerald-50 text-emerald-600 {% endif %} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                                <i class="{{ res.icon }}"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] {% if res.platform == 'YouTube' %} text-rose-400 {% else %} text-emerald-400 {% endif %} mb-1">{{ res.platform }}</p>
+                                <h4 class="text-sm font-bold text-slate-900 leading-tight">{{ res.title }}</h4>
+                            </div>
+                            <i class="fa-solid fa-arrow-up-right text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all"></i>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,499 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] bg-slate-50 py-12 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            {% if redirected %}
+            <div class="max-w-xl mx-auto mb-8 p-4 rounded-3xl bg-amber-50 border border-amber-100 flex items-center gap-4 text-left animate-[fade-in_0.3s_ease-out]">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white shrink-0">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-amber-900 leading-none">Assessment Required</h4>
+                    <p class="text-xs text-amber-700 mt-1 font-medium">To unlock your Growth Profile and Career Roadmap, please complete this 6-step diagnostic first.</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <h2 class="text-4xl font-[800] text-slate-900 tracking-tight">Readiness Assessment</h2>
+            <p class="text-slate-500 mt-2 font-medium">Step-by-step diagnostic to map your digital workforce profile</p>
+            
+            <!-- Progress Bar -->
+            <div class="mt-8 relative max-w-lg mx-auto">
+                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-slate-200">
+                    <div id="survey-progress" style="width: 16.6%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-600 transition-all duration-500"></div>
+                </div>
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                    <span>Start</span>
+                    <span>Domain Mastery</span>
+                    <span>Finish</span>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('student.survey') }}" enctype="multipart/form-data" id="survey-wizard">
+            
+            <!-- Step 1: Digital Access -->
+            <div class="survey-step" data-step="1">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-xl">
+                            <i class="fa-solid fa-wifi"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Digital Foundation</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Evaluating your hardware and connectivity access</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">1. Do you have Laptop availability at home?</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="q1" value="4" class="peer hidden" required checked>
+                                    <div class="p-4 text-center rounded-2xl border-2 border-slate-100 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 font-bold text-slate-600 peer-checked:text-indigo-600 transition-all">Always</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="q1" value="2" class="peer hidden">
+                                    <div class="p-4 text-center rounded-2xl border-2 border-slate-100 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 font-bold text-slate-600 peer-checked:text-indigo-600 transition-all">Shared</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="q1" value="0" class="peer hidden">
+                                    <div class="p-4 text-center rounded-2xl border-2 border-slate-100 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 font-bold text-slate-600 peer-checked:text-indigo-600 transition-all">Never</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">2. Primary Internet Connectivity Type:</label>
+                            <select name="q2" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">High-Speed Broadband / WIFI</option>
+                                <option value="2">Mobile Data (4G/5G)</option>
+                                <option value="0">Unreliable / Poor Connectivity</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">3. Smartphone access for daily tasks:</label>
+                            <select name="q3" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Excellent modern access</option>
+                                <option value="2">Average / Shared phone</option>
+                                <option value="0">No smartphone access</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">4. Online learning platform access (Udemy/Coursera):</label>
+                            <select name="q4" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Paid or Full Free access</option>
+                                <option value="2">Limited occasional access</option>
+                                <option value="0">No access at all</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">5. Average daily Internet usage:</label>
+                            <select name="q5" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">4+ hours actively</option>
+                                <option value="2">1-3 hours checking apps</option>
+                                <option value="0">Less than 1 hour</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Digital Skills -->
+            <div class="survey-step hidden" data-step="2">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-xl">
+                            <i class="fa-solid fa-code"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Engineering Core</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Mapping your technical and coding depth</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">6. Overall Coding Frequency:</label>
+                            <select name="q6" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="6">Daily (Consistently pushing code)</option>
+                                <option value="3">Weekly (Academic prep mostly)</option>
+                                <option value="0">Rarely / Never</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">7. Programming Languages Mastery:</label>
+                            <select name="q7" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="6">3+ modern languages</option>
+                                <option value="3">1-2 base languages</option>
+                                <option value="0">Basically none</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">8. GitHub Integration Status:</label>
+                            <select name="q8" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="6">Active daily/weekly commits</option>
+                                <option value="3">Have an account, rare usage</option>
+                                <option value="0">Don't operate GitHub</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">9. Algorithmic Practice (LeetCode/HackerRank):</label>
+                            <select name="q9" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="6">Consistent deep practice</option>
+                                <option value="3">Occasional casual practice</option>
+                                <option value="0">Never practiced algorithmically</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">10. Independent Project Experience:</label>
+                            <select name="q10" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="6">Multiple full-stack/integrated projects</option>
+                                <option value="3">Minor academic syllabus projects</option>
+                                <option value="0">No projects established</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Professional Readiness -->
+            <div class="survey-step hidden" data-step="3">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 text-xl">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Market Readiness</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Networking and internship exposure</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">11. Resume Preparation Status:</label>
+                            <select name="q11" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Fully updated and platform-ready</option>
+                                <option value="2">Initial rough draft available</option>
+                                <option value="0">Not made yet</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">12. LinkedIn Profile Status:</label>
+                            <select name="q12" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Active networking / content</option>
+                                <option value="2">Created but passive</option>
+                                <option value="0">No LinkedIn profile</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">13. Industrial Internship Experience:</label>
+                            <select name="q13" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Completed 1+ internships</option>
+                                <option value="2">Currently applying</option>
+                                <option value="0">No internship exposure</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">14. Hackathon Participation:</label>
+                            <select name="q14" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Participated in 2+</option>
+                                <option value="2">Attended 1</option>
+                                <option value="0">Never attended</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">15. Technical Workshops Attended:</label>
+                            <select name="q15" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="4">Frequent active attendance</option>
+                                <option value="2">Rare attendance</option>
+                                <option value="0">Zero workshops attended</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Learning Exposure -->
+            <div class="survey-step hidden" data-step="4">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 text-xl">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Learning Pulse</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Continuous learning and AI integration</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">16. Online Certifications Completed:</label>
+                            <select name="q16" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Multiple verified certificates</option>
+                                <option value="1">1 certificate active</option>
+                                <option value="0">None completed</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">17. Generative AI Tool Usage (ChatGPT/Copilot):</label>
+                            <select name="q17" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Daily effective usage</option>
+                                <option value="1">Occasional prompting</option>
+                                <option value="0">Never used</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">18. Competitive Coding Contests:</label>
+                            <select name="q18" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Active participant</option>
+                                <option value="1">Participated once</option>
+                                <option value="0">Never participated</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">19. Team Project Collaboration:</label>
+                            <select name="q19" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Lead / Active contributor</option>
+                                <option value="1">Passive member</option>
+                                <option value="0">Only solo work</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">20. Independent Self-learning Habits:</label>
+                            <select name="q20" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Learn new tech weekly</option>
+                                <option value="1">Learn for exams only</option>
+                                <option value="0">No independent learning</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Career Preparedness -->
+            <div class="survey-step hidden" data-step="5">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 text-xl">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Career Strategy</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Interviews and professional confidence</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">21. Individual Communication Confidence:</label>
+                            <select name="q21" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">High professional confidence</option>
+                                <option value="1">Average limited capability</option>
+                                <option value="0">Need help articulating</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">22. Mock Interview Preparation Level:</label>
+                            <select name="q22" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Given multiple mocks</option>
+                                <option value="1">Started reading resources</option>
+                                <option value="0">Not prepared yet</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">23. Career Domain Awareness:</label>
+                            <select name="q23" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Clear target roles / companies</option>
+                                <option value="1">Slightly confused / exploring</option>
+                                <option value="0">Clueless regarding outcomes</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">24. Industry Mentorship Access:</label>
+                            <select name="q24" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">Have active mentors</option>
+                                <option value="1">Networked with few casually</option>
+                                <option value="0">Zero established contacts</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-4">25. Placement Training Attendance:</label>
+                            <select name="q25" required class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="3">100% active participation</option>
+                                <option value="1">Skip sessions at intervals</option>
+                                <option value="0">Never attended training</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Profiles -->
+            <div class="survey-step hidden" data-step="6">
+                <div class="premium-card rounded-[2.5rem] p-8 sm:p-12">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-xl">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-900 leading-none">Verification Nodes</h3>
+                            <p class="text-slate-400 text-sm font-medium mt-1">Linking your professional digital trails</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2">Resume Artifact</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </div>
+                                <input type="file" name="resume" accept=".pdf,.doc,.docx"
+                                    class="w-full pl-11 pr-4 py-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-slate-900 font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-extrabold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 transition-all">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2">GitHub URL</label>
+                                <input type="url" name="github_url" placeholder="github.com/user"
+                                    class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2">LinkedIn URL</label>
+                                <input type="url" name="linkedin_url" placeholder="linkedin.com/in/user"
+                                    class="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+
+                        <div id="certs-v-container" class="space-y-3">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Certifications Vault</label>
+                            <!-- dynamic certs here -->
+                        </div>
+                        
+                        <button type="button" id="add-v-cert" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 text-xs font-bold hover:bg-indigo-100 transition-all">
+                            <i class="fa-solid fa-plus"></i> Add Digital Certificate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex justify-between items-center mt-12 bg-white/50 backdrop-blur-sm p-4 rounded-3xl border border-white/50">
+                <button type="button" id="prev-btn" class="invisible px-8 py-3 rounded-2xl bg-white text-slate-600 font-bold hover:bg-slate-100 transition-all">
+                    Back
+                </button>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Step <span id="current-step-display">1</span> / 6
+                </div>
+                <button type="button" id="next-btn" class="px-10 py-3 rounded-2xl bg-indigo-600 text-white font-extrabold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                    Next
+                </button>
+                <button type="submit" id="submit-btn" class="hidden px-10 py-3 rounded-2xl bg-indigo-600 text-white font-extrabold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">
+                    Analyze Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let currentStep = 1;
+        const totalSteps = 6;
+        const form = document.getElementById('survey-wizard');
+        const steps = document.querySelectorAll('.survey-step');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const progress = document.getElementById('survey-progress');
+        const stepDisplay = document.getElementById('current-step-display');
+
+        const updateUI = () => {
+            steps.forEach(s => s.classList.add('hidden'));
+            document.querySelector(`[data-step="${currentStep}"]`).classList.remove('hidden');
+            
+            progress.style.width = `${(currentStep / totalSteps) * 100}%`;
+            stepDisplay.textContent = currentStep;
+            
+            prevBtn.classList.toggle('invisible', currentStep === 1);
+            
+            if (currentStep === totalSteps) {
+                nextBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        nextBtn.addEventListener('click', () => {
+            const currentInputs = steps[currentStep-1].querySelectorAll('input, select');
+            let valid = true;
+            currentInputs.forEach(input => {
+                if (!input.checkValidity()) {
+                    input.reportValidity();
+                    valid = false;
+                }
+            });
+
+            if (valid && currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        });
+
+        // Certifications dynamic handler
+        const certContainer = document.getElementById('certs-v-container');
+        const addCertBtn = document.getElementById('add-v-cert');
+
+        addCertBtn.addEventListener('click', () => {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-white border border-slate-100 relative group animate-[fade-in_0.3s_ease-out]';
+            div.innerHTML = `
+                <button type="button" class="absolute -top-2 -right-2 w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-[10px] hover:bg-rose-600 hover:text-white transition-colors">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <input type="text" name="cert_names[]" placeholder="Credential Name" required class="p-3 rounded-xl bg-slate-50 border-none font-bold text-xs ring-1 ring-slate-200">
+                <input type="file" name="certs[]" required class="p-2 rounded-xl bg-slate-50 border-none font-bold text-xs ring-1 ring-slate-200 file:bg-indigo-100 file:border-0 file:rounded-lg file:text-[10px] file:font-bold">
+            `;
+            div.querySelector('button').onclick = () => div.remove();
+            certContainer.appendChild(div);
+        });
+    });
+</script>
+{% endblock %}

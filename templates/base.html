@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Digital Inclusion Index</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Tailwind CSS (CDN for premium UI) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        darkBg: '#0f172a',
+                        cardDark: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .premium-card {
+            background: white;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .premium-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-link-custom {
+            position: relative;
+            font-weight: 600;
+            color: #475569;
+            transition: color 0.2s;
+        }
+        .nav-link-custom::after {
+            content: '';
+            position: absolute;
+            width: 0; height: 2px;
+            bottom: -4px; left: 0;
+            background: #6366f1;
+            transition: width 0.3s;
+        }
+        .nav-link-custom:hover::after { width: 100%; }
+        .nav-link-custom:hover { color: #6366f1; }
+    </style>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
+
+<!-- Modern Navigation -->
+<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-20">
+            <div class="flex items-center">
+                <a href="{{ url_for('auth.index') }}" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-extrabold text-xl tracking-tight leading-none text-slate-900">Digital<span class="text-indigo-600">Inclusion</span></span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">AI Workforce Agent</span>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center space-x-8">
+                {% if 'user_id' in session %}
+                    {% if session['role'] == 'admin' %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="nav-link-custom py-2">Analytics Console</a>
+                        <a href="{{ url_for('student.leaderboard') }}" class="nav-link-custom py-2">Global Ranking</a>
+                    {% else %}
+                        <a href="{{ url_for('student.survey') }}" class="nav-link-custom py-2">Simulation Survey</a>
+                        <a href="{{ url_for('student.result') }}" class="nav-link-custom py-2">My Growth Profile</a>
+                        <a href="{{ url_for('student.history') }}" class="nav-link-custom py-2">Record History</a>
+                        <a href="{{ url_for('student.leaderboard') }}" class="nav-link-custom py-2">Global Ranking</a>
+                    {% endif %}
+                    
+                    <div class="flex items-center gap-4 pl-4 border-l border-slate-200">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-xs font-bold text-slate-900 leading-none">{{ session.get('name', 'User') }}</p>
+                            <span class="text-[10px] font-bold text-indigo-500 uppercase">{{ session.get('role', 'Student') }}</span>
+                        </div>
+                        <a href="{{ url_for('auth.logout') }}" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition-colors">
+                            <i class="fa-solid fa-power-off"></i>
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="text-sm font-bold text-slate-600 hover:text-indigo-600 transition">Login</a>
+                    <a href="{{ url_for('auth.register') }}" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-xl hover:bg-indigo-600 hover:-translate-y-0.5 transition-all">
+                        Join Platform
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+<div class="fixed top-20 right-4 z-50 space-y-2">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-[fade-in_0.3s_ease-out]">
+            <i class="fa-solid fa-circle-info"></i>
+            <span class="font-medium">{{ msg }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Main Content -->
+<main class="min-h-[calc(100vh-64px)] w-full">
+    {% block content %}
+    {% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="bg-white border-t border-slate-100 mt-12 py-8 text-center text-slate-400 text-sm">
+    <div class="max-w-7xl mx-auto px-4">
+        <p>&copy; 2026 Digital Inclusion Indexing System Using AI. Built for the Workforce.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

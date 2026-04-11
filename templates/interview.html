@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+                <div>
+                    <h2 class="fw-bolder text-rose-600 mb-1">
+                        <i class="fa-solid fa-microphone-lines mr-2"></i> 
+                        AI Mock Interview Workspace
+                    </h2>
+                    <p class="text-slate-500 mb-0 font-medium">Topic: Behavioral & Workforce Readiness Profile</p>
+                </div>
+                <a href="{{ url_for('student.result') }}" class="btn btn-outline-slate btn-sm rounded-xl px-3 font-bold border-2">Exit Workspace</a>
+            </div>
+
+            <!-- Focus Mode Interview Box -->
+            <div class="card shadow-2xl border-0 bg-slate-900 overflow-hidden" style="border-radius: 24px;">
+                <div class="p-4 bg-slate-800 border-bottom border-slate-700 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-white fw-bold mb-0">Interviewer: DigiGuide Pro</h6>
+                            <p class="text-[10px] text-emerald-400 mb-0 font-mono italic">SESSION ACTIVE // MODE: HR SIMULATION</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="interview-window" class="p-6 h-[500px] overflow-y-auto flex flex-col gap-4 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] bg-slate-900">
+                    <!-- Initial Interviewer Message -->
+                    <div class="self-start max-w-[85%] bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-700 shadow-xl">
+                        <p class="text-slate-200 text-sm font-medium mb-0">
+                            Hello {{ student.name }}. I am your interviewer today. Based on your Digital Workforce Score of <b>{{ score }}</b>, I'd like to dive deeper into your professional readiness.<br/><br/>
+                            <b>Let's start:</b> Tell me about a time you used a digital tool to solve a problem effectively. How did you approach it?
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-800 border-t border-slate-700 flex gap-2">
+                    <input type="text" id="interview-input" class="flex-grow bg-slate-900 border-0 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-rose-500 outline-none font-medium" placeholder="Respond to the interviewer...">
+                    <button onclick="sendResponse()" id="interview-btn" class="bg-rose-600 text-white p-3 rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/30">
+                        <i class="fa-solid fa-arrow-up px-1"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-slate-400 mt-1"></i>
+                <p class="text-[11px] text-slate-500 mb-0 leading-relaxed font-medium">
+                    <b>TIP:</b> Be specific. Mention tools like VS Code, GitHub, or Excel. This interview helps the AI Mentor refine your 30-day roadmap based on your soft-skill performance.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function sendResponse() {
+        const input = document.getElementById('interview-input');
+        const window = document.getElementById('interview-window');
+        const btn = document.getElementById('interview-btn');
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        // Add user bubble
+        const userDiv = document.createElement('div');
+        userDiv.className = 'self-end max-w-[85%] bg-rose-600 p-4 rounded-2xl rounded-tr-none shadow-xl text-white text-sm font-bold';
+        userDiv.innerText = text;
+        window.appendChild(userDiv);
+        
+        input.value = '';
+        btn.disabled = true;
+        window.scrollTop = window.scrollHeight;
+
+        // Add thinking
+        const thinkingDiv = document.createElement('div');
+        thinkingDiv.className = 'self-start max-w-[85%] bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-700 shadow-xl';
+        thinkingDiv.innerHTML = '<span class="text-rose-400 text-xs italic font-mono italic">Evaluating response...</span>';
+        window.appendChild(thinkingDiv);
+        window.scrollTop = window.scrollHeight;
+
+        try {
+            const response = await fetch('/api/chatbot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `[MODE: INTERVIEW] ${text}` })
+            });
+            const data = await response.json();
+            
+            window.removeChild(thinkingDiv);
+            
+            const mentorDiv = document.createElement('div');
+            mentorDiv.className = 'self-start max-w-[85%] bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-700 shadow-xl';
+            mentorDiv.innerHTML = `<p class="text-slate-200 text-sm font-medium mb-0">${data.reply}</p>`;
+            window.appendChild(mentorDiv);
+        } catch (error) {
+            window.removeChild(thinkingDiv);
+            alert("Signal lost. Reconnecting...");
+        }
+
+        btn.disabled = false;
+        window.scrollTop = window.scrollHeight;
+    }
+
+    document.getElementById('interview-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendResponse();
+    });
+</script>
+{% endblock %}

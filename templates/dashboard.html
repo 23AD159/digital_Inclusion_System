@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom border-secondary">
+        <h2 class="fw-bolder text-primary tracking-wide">Workforce Readiness Administration</h2>
+        <span class="badge bg-dark fs-6 py-2 px-4 shadow">Academic Statistics Engine</span>
+    </div>
+
+    <!-- Stats row -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card p-5 border-0 shadow-sm text-center bg-white h-100 rounded-4">
+                <h1 class="text-primary fw-bolder display-3">{{ total }}</h1>
+                <p class="text-muted mb-0 fw-bold fs-5 text-uppercase pt-2 border-top">Students Computed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-5 border-0 shadow-sm text-center bg-white h-100 rounded-4">
+                <h1 class="text-success fw-bolder display-3">{{ avg_score }}</h1>
+                <p class="text-muted mb-0 fw-bold fs-5 text-uppercase pt-2 border-top">Average AI Score</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-5 border-0 shadow-sm text-center bg-white h-100 rounded-4">
+                <h1 class="text-danger fw-bolder display-3">{{ dist.get('High Risk', 0) }}</h1>
+                <p class="text-muted mb-0 fw-bold fs-5 text-uppercase pt-2 border-top">High Risk Profiles</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-5 border-0 shadow-sm text-center bg-white h-100 rounded-4">
+                <h1 class="text-indigo-600 fw-bolder display-3">{{ verification_rate }}%</h1>
+                <p class="text-muted mb-0 fw-bold fs-5 text-uppercase pt-2 border-top">Verification Confidence</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-5 g-4 align-items-stretch">
+        <div class="col-lg-4">
+            <div class="premium-card rounded-[2rem] p-6 h-100">
+                <h5 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-indigo-500"></i>
+                    Categorization
+                </h5>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="premium-card rounded-[2rem] p-6 h-100">
+                <h5 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-indigo-500"></i>
+                    Score Trends
+                </h5>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 mb-4 p-5 rounded-4 bg-white">
+                <h5 class="fw-bold mb-4 border-bottom border-danger pb-2 text-danger"><i class="bi bi-fire"></i> Specific Skill Gap Heatmap</h5>
+                
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold text-dark fs-5">Students Lacking GitHub/Version Control Usage</span>
+                        <span class="fw-bold text-danger fs-5">{{ percent_no_github }}%</span>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ percent_no_github }}%;" aria-valuenow="{{ percent_no_github }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold text-dark fs-5">Students Lacking Communication Confidence</span>
+                        <span class="fw-bold text-warning fs-5">{{ percent_no_comm }}%</span>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ percent_no_comm }}%;" aria-valuenow="{{ percent_no_comm }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 h-100 p-5 rounded-4 bg-white">
+                <h5 class="fw-bold mb-4 text-center pb-2 border-bottom border-primary text-primary">Explicit Meta-Skill
+                    Domain Performance</h5>
+                <canvas id="barChart" style="max-height: 450px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Safely parse Jinja variables as JSON strings to prevent IDE JS syntax errors
+    const distData = [
+        JSON.parse('{{ dist.get("Industry Ready", 0) | tojson | safe }}'),
+        JSON.parse('{{ dist.get("Needs Upskilling", 0) | tojson | safe }}'),
+        JSON.parse('{{ dist.get("High Risk", 0) | tojson | safe }}')
+    ];
+    const scoreLabels = JSON.parse('{{ score_labels | tojson | safe }}');
+    const scoreData = JSON.parse('{{ score_data | tojson | safe }}');
+    const skillGaps = JSON.parse('{{ skill_gaps | tojson | safe }}');
+    const totalStudents = JSON.parse('{{ total | tojson | safe }}');
+
+    // System Categorization mapped pie graph securely internally
+    const ctxPie = document.getElementById('pieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: ['Industry Ready', 'Needs Upskilling', 'High Risk'],
+            datasets: [{
+                data: distData,
+                backgroundColor: ['#198754', '#fd7e14', '#dc3545'],
+                borderWidth: 2
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Temporal Line tracking dynamically generated mapped explicitly
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: scoreLabels,
+            datasets: [{
+                label: 'Direct Survey Output Scores Out of 100 Points mapped',
+                data: scoreData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.15)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 100, ticks: { font: { size: 14 } } } }
+        }
+    });
+
+    // Exact domain logic mapping testing averages accurately explicitly explicitly mapped efficiently
+    const ctxBar = document.getElementById('barChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: [
+                'Digital Access (Max 20pt)',
+                'Digital Meta-Skills (Max 30pt)',
+                'Professional Networking (Max 20pt)',
+                'Modern Integration Exposure (Max 15pt)',
+                'Systematic Career Readiness (Max 15pt)'
+            ],
+            datasets: [{
+                label: 'Average Student Scores inside Mapping Domain Engine natively tracking globally directly mapped accurately explicitly',
+                data: skillGaps,
+                backgroundColor: ['#6f42c1', '#20c997', '#0dcaf0', '#ffc107', '#e83e8c'],
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { font: { size: 14 } } } }
+        }
+    });
+
+    // Remove auto-refresh to prevent layout disruption
+    // setTimeout(() => { if (totalStudents > 0) window.location.reload(); }, 60000);
+</script>
+{% endblock %}

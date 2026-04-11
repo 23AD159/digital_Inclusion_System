@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] bg-slate-50 py-12 px-4">
+    <div class="max-w-6xl mx-auto space-y-12">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h2 class="text-4xl font-[800] text-slate-900 tracking-tight">Global Talent Leaderboard</h2>
+            <p class="text-slate-500 mt-2 font-medium">Recognizing excellence in digital readiness and workforce potential</p>
+        </div>
+
+        <!-- Top 3 Podium (Visual highlights) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-4xl mx-auto px-4">
+            <!-- Rank 2 -->
+            {% if students|length > 1 %}
+            <div class="order-2 md:order-1">
+                <div class="premium-card rounded-[2rem] p-6 text-center border-t-4 border-slate-300 relative overflow-hidden">
+                    <div class="absolute -top-1 right-2 text-4xl font-black text-slate-100 italic select-none">2</div>
+                    <div class="w-20 h-20 rounded-2xl bg-slate-100 mx-auto flex items-center justify-center text-slate-400 mb-4">
+                        <i class="fa-solid fa-user text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 line-clamp-1">{{ students[1].name }}</h3>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mt-1">{{ students[1].college }}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-50">
+                        <span class="text-xl font-black text-slate-900">{{ students[1].points }}</span>
+                        <span class="text-[10px] font-bold text-slate-400 ml-1">PTS</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Rank 1 -->
+            {% if students|length > 0 %}
+            <div class="order-1 md:order-2">
+                <div class="premium-card rounded-[2.5rem] p-8 text-center border-t-4 border-indigo-500 relative -translate-y-4 shadow-2xl shadow-indigo-100">
+                    <div class="absolute -top-2 right-4 text-6xl font-black text-indigo-50 italic select-none">1</div>
+                    <div class="w-24 h-24 rounded-3xl bg-indigo-600 mx-auto flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-200">
+                        <i class="fa-solid fa-crown text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 line-clamp-1">{{ students[0].name }}</h3>
+                    <p class="text-[10px] uppercase font-bold text-indigo-500 tracking-widest mt-1">{{ students[0].college }}</p>
+                    <div class="mt-6 pt-6 border-t border-slate-100">
+                        <div class="text-xs font-bold text-indigo-600 mb-1">ELITE TIER</div>
+                        <span class="text-3xl font-black text-slate-900">{{ students[0].points }}</span>
+                        <span class="text-xs font-bold text-slate-400 ml-1">PTS</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Rank 3 -->
+            {% if students|length > 2 %}
+            <div class="order-3">
+                <div class="premium-card rounded-[2rem] p-6 text-center border-t-4 border-amber-600 relative overflow-hidden">
+                    <div class="absolute -top-1 right-2 text-4xl font-black text-slate-100 italic select-none">3</div>
+                    <div class="w-20 h-20 rounded-2xl bg-amber-50 mx-auto flex items-center justify-center text-amber-600 mb-4">
+                        <i class="fa-solid fa-user text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 line-clamp-1">{{ students[2].name }}</h3>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mt-1">{{ students[2].college }}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-50">
+                        <span class="text-xl font-black text-slate-900">{{ students[2].points }}</span>
+                        <span class="text-[10px] font-bold text-slate-400 ml-1">PTS</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Ranking Table -->
+        <div class="premium-card rounded-[2.5rem] overflow-hidden">
+            <div class="p-8 border-bottom border-slate-100 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-slate-900">Digital Vanguard Ranking</h3>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Top 50</div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-slate-50/50">
+                            <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rank</th>
+                            <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Student</th>
+                            <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">College</th>
+                            <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Points</th>
+                            <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Badge</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for s in students %}
+                        <tr class="hover:bg-slate-50/50 transition-colors group">
+                            <td class="px-8 py-6">
+                                <span class="w-8 h-8 rounded-lg {% if loop.index <= 3 %} bg-indigo-600 text-white {% else %} bg-slate-100 text-slate-400 {% endif %} flex items-center justify-center text-xs font-black">
+                                    {{ loop.index }}
+                                </span>
+                            </td>
+                            <td class="px-8 py-6">
+                                <div class="font-bold text-slate-900">{{ s.name }}</div>
+                            </td>
+                            <td class="px-8 py-6">
+                                <div class="text-xs font-medium text-slate-500">{{ s.college }}</div>
+                            </td>
+                            <td class="px-8 py-6 text-right">
+                                <div class="font-black text-slate-900">{{ s.points }}</div>
+                            </td>
+                            <td class="px-8 py-6 text-center">
+                                <span class="px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                    {{ s.badges or 'SEED' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
