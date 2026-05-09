@@ -15,6 +15,9 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    # Auto‑create tables on first start if they are missing
+    with app.app_context():
+        db.create_all()
 
     # Ensure upload directories exist
     os.makedirs(app.config['RESUME_FOLDER'], exist_ok=True)
