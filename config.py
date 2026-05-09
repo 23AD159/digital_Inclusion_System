@@ -7,8 +7,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "default-secret")
     
-    DB_PATH = os.path.join(BASE_DIR, "database", "app.db")
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + DB_PATH
+    DB_PATH = '/tmp/app.db'
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{DB_PATH}'
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
