@@ -18,6 +18,23 @@ def create_app(config_class=Config):
     # Auto‑create tables on first start if they are missing
     with app.app_context():
         db.create_all()
+        # Ensure default admin exists
+        from app.models import User
+        admin_email = 'admin@admin.com'
+        if not User.query.filter_by(email=admin_email).first():
+            admin = User(
+                name='Admin',
+                college='Admin Portal',
+                department='Management',
+                year='N/A',
+                email=admin_email,
+                role='admin'
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print('Default admin user created')
+
 
     # Ensure upload directories exist
     os.makedirs(app.config['RESUME_FOLDER'], exist_ok=True)
