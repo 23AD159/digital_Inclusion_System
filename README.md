@@ -20,9 +20,6 @@ The architecture comprises a three-tier model:
 5. **Recommendation Engine**: A rule-based engine creates actionable points for the student tailored to their weaknesses.
 6. **Admin Analytics**: Cohort data is pushed to the Admin Dashboard API, mapped into `Chart.js`.
 
-## Explanation Suitable for Project Viva
-"Good Morning panel. Our project is the AI-Driven Digital Inclusion System. The inspiration came from NASSCOM's gap analysis on Tier-2 and 3 colleges. We built a full-stack integrated platform where students take a skill survey. Unlike simple rule queries, our backend utilizes an AI RandomForest model that we trained to classify students' exact readiness level. The system actively assists by generating custom-tailored mentorship roadmaps. We used Flask for backend routing, Scikit-learn for our predictive models, SQLite for relational data persistence, and Bootstrap alongside Chart.js to make a beautifully responsive interactive frontend."
-
 ## Future Improvements
 - **LLM Integration**: Using GenAI to dynamically talk with the student and provide deeper resume review.
 - **LinkedIn/GitHub API**: Automatically fetching student commits or repos for transparent background-checks.
